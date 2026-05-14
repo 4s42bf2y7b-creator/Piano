@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Piano Star">
+<title>Piano Star 🌟</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+body{background:#0D0D1A;color:#F0E6FF;font-family:'Nunito',sans-serif;overflow:hidden;height:100dvh;width:100vw;user-select:none;touch-action:none}
+canvas{display:block}
+
+/* SCREENS */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;transition:opacity .35s,transform .35s;z-index:1}
+.screen.off{opacity:0;pointer-events:none;transform:scale(.97)}
+
+/* BG */
+#bgc{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* HOME */
+#home{justify-content:flex-start;padding:0;overflow:hidden}
+.home-scroll{width:100%;max-width:500px;display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 16px 24px;overflow-y:auto;height:100%;-webkit-overflow-scrolling:touch}
+
+.logo{font-family:'Fredoka One',cursive;font-size:clamp(42px,11vw,68px);background:linear-gradient(135deg,#FF6B9D,#C77DFF,#4CC9F0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 22px rgba(199,125,255,.5));line-height:1;text-align:center}
+.logo-sub{font-size:13px;color:#A89BC2;font-weight:800;letter-spacing:3px;text-transform:uppercase;margin-top:2px;text-align:center}
+
+.streak{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#FF6B00,#FFD60A);border-radius:50px;padding:8px 22px;box-shadow:0 4px 18px rgba(255,107,0,.4)}
+.streak-n{font-family:'Fredoka One',cursive;font-size:26px;color:#000}
+.streak-l{font-size:13px;font-weight:900;color:#000}
+
+.midi-pill{display:flex;align-items:center;gap:10px;background:#1E1E38;border:2px solid rgba(255,255,255,.08);border-radius:50px;padding:9px 18px;cursor:pointer;width:100%;max-width:340px;justify-content:center}
+.midi-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;transition:background .3s,box-shadow .3s}
+.midi-text{font-size:12px;font-weight:800;color:#A89BC2}
+
+.sec-title{font-family:'Fredoka One',cursive;font-size:12px;color:#A89BC2;text-transform:uppercase;letter-spacing:2px;align-self:flex-start}
+.song-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.song-card{position:relative;background:#1E1E38;border:2px solid rgba(255,255,255,.06);border-radius:18px;padding:13px;cursor:pointer;display:flex;flex-direction:column;gap:5px;text-align:left;overflow:hidden;transition:transform .12s;-webkit-tap-highlight-color:transparent}
+.song-card:active{transform:scale(.95)}
+.song-card-glow{position:absolute;inset:0;opacity:.15;pointer-events:none}
+.song-emoji{font-size:26px}
+.song-title{font-weight:900;font-size:14px;line-height:1.2;color:#F0E6FF}
+.song-artist{font-size:11px;color:#A89BC2;font-weight:700}
+.song-stars{font-size:13px}
+.lvl-badge{display:inline-block;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;width:fit-content;margin-top:2px}
+
+/* PLAY */
+#play{justify-content:flex-start;padding:0}
+.play-hdr{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111125;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.back-btn{background:none;border:none;color:#A89BC2;font-size:24px;cursor:pointer;padding:4px 8px;line-height:1}
+.play-info{}
+.play-title{font-family:'Fredoka One',cursive;font-size:18px;color:#F0E6FF}
+.play-artist{font-size:11px;color:#A89BC2;font-weight:700}
+.timer-ring{position:relative;width:48px;height:48px;flex-shrink:0}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:13px;color:#FFD60A}
+
+.score-bar{width:100%;display:flex;justify-content:space-around;padding:7px 8px;background:#111125;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.sc-item{display:flex;flex-direction:column;align-items:center;gap:1px}
+.sc-val{font-family:'Fredoka One',cursive;font-size:20px}
+.sc-lbl{font-size:9px;color:#A89BC2;text-transform:uppercase;letter-spacing:.8px;font-weight:800}
+
+.game-wrap{flex:1;position:relative;overflow:hidden;width:100%}
+#gc{width:100%;height:100%}
+
+.countdown-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:110px;pointer-events:none;z-index:10;animation:pop .3s ease-out}
+.miss-flash{position:absolute;inset:0;background:rgba(255,50,50,.13);pointer-events:none;z-index:9;opacity:0;transition:opacity .08s}
+.miss-flash.show{opacity:1}
+.combo-pop{position:absolute;top:26%;left:50%;transform:translateX(-50%);font-family:'Fredoka One',cursive;font-size:38px;pointer-events:none;z-index:11;white-space:nowrap;animation:pop .25s ease-out;text-shadow:0 0 18px currentColor}
+
+/* PIANO */
+.piano-wrap{flex-shrink:0;background:#0A0A18;border-top:2px solid rgba(255,255,255,.07);padding:5px 6px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.piano-inner{display:flex;justify-content:center;gap:3px;padding:0 6px;position:relative;min-width:fit-content}
+.wkey-wrap{position:relative;flex-shrink:0}
+.wkey{width:38px;height:88px;border-radius:0 0 8px 8px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;border:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.09);transition:background .07s,transform .07s;touch-action:none}
+.wkey.active{transform:scaleY(.94)}
+.wkey span{font-size:9px;font-weight:900;color:rgba(255,255,255,.35);pointer-events:none}
+.bkey{position:absolute;top:0;width:26px;height:54px;border-radius:0 0 6px 6px;cursor:pointer;z-index:2;border:1.5px solid rgba(255,255,255,.12);background:rgba(0,0,0,.8);transition:background .07s;touch-action:none}
+
+/* RESULT */
+#result{justify-content:center;gap:14px;padding:24px}
+.res-stars{font-size:58px;animation:pop .4s ease-out}
+.res-title{font-family:'Fredoka One',cursive;font-size:32px;text-align:center}
+.res-msg{color:#A89BC2;font-size:14px;text-align:center;font-weight:700;max-width:300px;line-height:1.5}
+.res-stats{display:flex;gap:18px;background:#1E1E38;border-radius:20px;padding:14px 22px}
+.stat{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:65px}
+.stat-n{font-family:'Fredoka One',cursive;font-size:28px}
+.stat-l{font-size:10px;color:#A89BC2;text-transform:uppercase;letter-spacing:1px;font-weight:800}
+.btn-primary{background:linear-gradient(135deg,#FF6B9D,#C77DFF);border:none;border-radius:50px;font-family:'Fredoka One',cursive;font-size:20px;color:#fff;padding:13px 0;cursor:pointer;width:100%;max-width:260px;box-shadow:0 6px 22px rgba(255,107,157,.4);touch-action:manipulation}
+.btn-secondary{background:#1E1E38;border:2px solid rgba(255,255,255,.12);border-radius:50px;font-family:'Fredoka One',cursive;font-size:16px;color:#F0E6FF;padding:10px 28px;cursor:pointer;touch-action:manipulation}
+
+@keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<canvas id="bgc"></canvas>
+
+<!-- HOME -->
+<div id="home" class="screen">
+  <div class="home-scroll">
+    <div>
+      <div class="logo">Piano Star</div>
+      <div class="logo-sub">Play songs you love 🎵</div>
+    </div>
+    <div class="streak"><span style="font-size:22px">🔥</span><span class="streak-n" id="streakN">0</span><span class="streak-l">day streak</span></div>
+    <button class="midi-pill" id="midiPill" onclick="retryMidi()">
+      <span class="midi-dot" id="midiDot"></span>
+      <span class="midi-text" id="midiText">Looking for keyboard…</span>
+    </button>
+    <div class="sec-title">Pick a song ✨</div>
+    <div class="song-grid" id="songGrid"></div>
+  </div>
+</div>
+
+<!-- PLAY -->
+<div id="play" class="screen off">
+  <div class="play-hdr">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="play-info">
+      <div class="play-title" id="playTitle">–</div>
+      <div class="play-artist" id="playArtist">–</div>
+    </div>
+    <div class="timer-ring">
+      <svg width="48" height="48" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"/>
+        <circle id="timerArc" cx="24" cy="24" r="20" fill="none" stroke="#FFD60A" stroke-width="3"
+          stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="0" style="transition:stroke-dashoffset 1s linear,stroke .5s"/>
+      </svg>
+      <div class="timer-txt" id="timerTxt">10:00</div>
+    </div>
+  </div>
+
+  <div class="score-bar">
+    <div class="sc-item"><div class="sc-val" id="scScore" style="color:#FFD60A">0</div><div class="sc-lbl">Score</div></div>
+    <div class="sc-item"><div class="sc-val" id="scCombo" style="color:#FF6B9D">×1</div><div class="sc-lbl">Combo</div></div>
+    <div class="sc-item"><div class="sc-val" id="scAcc" style="color:#06D6A0">–</div><div class="sc-lbl">Accuracy</div></div>
+    <div class="sc-item"><div class="sc-val" id="scLvl" style="color:#C77DFF">⭐</div><div class="sc-lbl">Level</div></div>
+  </div>
+
+  <div class="game-wrap">
+    <canvas id="gc"></canvas>
+    <div class="miss-flash" id="missFlash"></div>
+    <div class="countdown-ov" id="cdOv" style="display:none"></div>
+    <div class="combo-pop" id="comboPop" style="display:none"></div>
+  </div>
+
+  <div class="piano-wrap">
+    <div class="piano-inner" id="pianoInner"></div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="screen off">
+  <div class="res-stars" id="resStars">⭐⭐⭐</div>
+  <div class="res-title" id="resTitle">Amazing!</div>
+  <div class="res-msg" id="resMsg"></div>
+  <div class="res-stats">
+    <div class="stat"><div class="stat-n" id="rScore" style="color:#FFD60A">0</div><div class="stat-l">Score</div></div>
+    <div class="stat"><div class="stat-n" id="rAcc" style="color:#06D6A0">0%</div><div class="stat-l">Notes Hit</div></div>
+    <div class="stat"><div class="stat-n" id="rCombo" style="color:#FF6B9D">×1</div><div class="stat-l">Best Combo</div></div>
+  </div>
+  <button class="btn-primary" onclick="playAgain()">Play Again 🎹</button>
+  <button class="btn-secondary" onclick="goHome()">← Song List</button>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const NOTE_COLORS={0:'#FF6B9D',1:'#FF85A1',2:'#FF9E00',3:'#FFB700',4:'#FFD60A',5:'#06D6A0',6:'#4CC9F0',7:'#4895EF',8:'#C77DFF',9:'#E040FB',10:'#F72585',11:'#FF4D6D'};
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const BLACK_SEMIS=[1,3,6,8,10];
+const nc=m=>NOTE_COLORS[m%12];
+const nn=m=>NOTE_NAMES[m%12];
+const isB=m=>BLACK_SEMIS.includes(m%12);
+
+const SONGS=[
+  {id:'roar',title:'Roar',artist:'Katy Perry',emoji:'🦁',color:'#FF6B9D',bpm:88,levels:[
+    {label:'⭐ Starter',sm:.75,notes:[[64,0,1],[64,1,.5],[65,1.5,.5],[64,2,1],[60,3,1],[64,4,1],[64,5,.5],[65,5.5,.5],[64,6,1],[62,7,1],[64,8,1],[64,9,.5],[65,9.5,.5],[67,10,1],[67,11,1],[65,12,1],[64,13,1],[62,14,2]]},
+    {label:'⭐⭐ Growing',sm:1.0,notes:[[64,0,1],[64,1,.5],[65,1.5,.5],[64,2,1],[60,3,1],[64,4,1],[64,5,.5],[65,5.5,.5],[64,6,1],[62,7,1],[64,8,1],[64,9,.5],[65,9.5,.5],[67,10,1],[67,11,1],[65,12,1],[64,13,1],[62,14,2],[67,16,1],[67,17,.5],[68,17.5,.5],[67,18,1],[64,19,1],[67,20,1],[67,21,.5],[68,21.5,.5],[67,22,1],[65,23,1],[64,24,2],[62,26,2],[60,28,4]]},
+    {label:'⭐⭐⭐ Star',sm:1.25,notes:[[60,0,.5],[62,.5,.5],[64,1,1],[64,2,.5],[65,2.5,.5],[64,3,1],[60,4,1],[64,5,1],[64,6,.5],[65,6.5,.5],[64,7,1],[62,8,1],[64,9,1],[64,10,.5],[65,10.5,.5],[67,11,1],[67,12,1],[65,13,1],[64,14,1],[62,15,2],[67,17,1],[67,18,.5],[68,18.5,.5],[67,19,1],[64,20,1],[67,21,1],[67,22,.5],[68,22.5,.5],[67,23,1],[65,24,1],[64,25,2],[62,27,2],[60,29,4]]}
+  ]},
+  {id:'firework',title:'Firework',artist:'Katy Perry',emoji:'🎆',color:'#FF9E00',bpm:124,levels:[
+    {label:'⭐ Starter',sm:.7,notes:[[64,0,1],[62,1,1],[60,2,1],[62,3,1],[64,4,1],[64,5,1],[64,6,2],[62,8,1],[62,9,1],[62,10,2],[64,12,1],[67,13,1],[67,14,2],[64,16,1],[62,17,1],[60,18,1],[62,19,1],[64,20,1],[64,21,1],[64,22,1],[64,23,1],[62,24,1],[62,25,1],[64,26,1],[62,27,1],[60,28,4]]},
+    {label:'⭐⭐ Growing',sm:1.0,notes:[[64,0,1],[62,1,1],[60,2,1],[62,3,1],[64,4,1],[64,5,1],[64,6,2],[62,8,1],[62,9,1],[62,10,2],[64,12,1],[67,13,1],[67,14,2],[64,16,1],[62,17,1],[60,18,1],[62,19,1],[64,20,1],[64,21,1],[64,22,1],[64,23,1],[62,24,1],[62,25,1],[64,26,1],[62,27,1],[60,28,4],[67,32,1],[69,33,1],[71,34,2],[69,36,1],[67,37,1],[65,38,2],[64,40,1],[62,41,1],[60,42,4]]},
+    {label:'⭐⭐⭐ Star',sm:1.2,notes:[[60,0,.5],[62,.5,.5],[64,1,1],[62,2,1],[60,3,1],[62,4,1],[64,5,1],[64,6,1],[64,7,2],[62,9,1],[62,10,1],[62,11,2],[64,13,1],[67,14,1],[67,15,2],[64,17,1],[62,18,1],[60,19,1],[62,20,1],[64,21,1],[64,22,1],[64,23,1],[64,24,1],[62,25,1],[62,26,1],[64,27,1],[62,28,1],[60,29,4]]}
+  ]},
+  {id:'rings',title:'7 Rings',artist:'Ariana Grande',emoji:'💍',color:'#C77DFF',bpm:140,levels:[
+    {label:'⭐ Starter',sm:.7,notes:[[60,0,.5],[62,.5,.5],[64,1,.5],[65,1.5,.5],[64,2,1],[62,3,1],[60,4,.5],[62,4.5,.5],[64,5,.5],[65,5.5,.5],[64,6,1],[60,7,1],[59,8,.5],[60,8.5,.5],[62,9,.5],[64,9.5,.5],[62,10,1],[60,11,1],[59,12,.5],[57,12.5,.5],[59,13,.5],[60,13.5,.5],[62,14,2]]},
+    {label:'⭐⭐ Growing',sm:1.0,notes:[[60,0,.5],[62,.5,.5],[64,1,.5],[65,1.5,.5],[64,2,1],[62,3,1],[60,4,.5],[62,4.5,.5],[64,5,.5],[65,5.5,.5],[64,6,1],[60,7,1],[59,8,.5],[60,8.5,.5],[62,9,.5],[64,9.5,.5],[62,10,1],[60,11,1],[59,12,.5],[57,12.5,.5],[59,13,.5],[60,13.5,.5],[62,14,2],[65,16,.5],[64,16.5,.5],[62,17,.5],[60,17.5,.5],[62,18,1],[64,19,1],[65,20,.5],[64,20.5,.5],[62,21,.5],[60,21.5,.5],[62,22,2],[60,24,2],[59,26,2],[57,28,4]]},
+    {label:'⭐⭐⭐ Star',sm:1.2,notes:[[55,0,.5],[57,.5,.5],[59,1,.5],[60,1.5,.5],[60,2,.5],[62,2.5,.5],[64,3,.5],[65,3.5,.5],[64,4,1],[62,5,1],[60,6,.5],[62,6.5,.5],[64,7,.5],[65,7.5,.5],[64,8,1],[60,9,1],[59,10,.5],[60,10.5,.5],[62,11,.5],[64,11.5,.5],[62,12,1],[60,13,1],[59,14,.5],[57,14.5,.5],[59,15,.5],[60,15.5,.5],[62,16,2]]}
+  ]},
+  {id:'letigtgo',title:'Let It Go',artist:'Frozen ❄️',emoji:'❄️',color:'#4CC9F0',bpm:68,levels:[
+    {label:'⭐ Starter',sm:.8,notes:[[65,0,1.5],[64,1.5,.5],[65,2,2],[65,4,1.5],[64,4.5,.5],[65,5,1],[67,6,1],[60,7,2],[62,9,2],[64,11,1],[62,12,1],[60,13,3],[65,16,1.5],[64,17.5,.5],[65,18,2],[65,20,1.5],[64,21.5,.5],[65,22,1],[69,23,1],[67,24,4]]},
+    {label:'⭐⭐ Growing',sm:1.0,notes:[[65,0,1.5],[64,1.5,.5],[65,2,2],[65,4,1.5],[64,4.5,.5],[65,5,1],[67,6,1],[60,7,2],[62,9,2],[64,11,1],[62,12,1],[60,13,3],[65,16,1.5],[64,17.5,.5],[65,18,2],[65,20,1.5],[64,21.5,.5],[65,22,1],[69,23,1],[67,24,1],[65,25,1],[64,26,1],[65,27,1],[67,28,4],[69,32,1],[71,33,1],[72,34,2],[71,36,1],[69,37,1],[67,38,4]]},
+    {label:'⭐⭐⭐ Star',sm:1.1,notes:[[60,0,.5],[62,.5,.5],[64,1,.5],[65,1.5,.5],[65,2,1.5],[64,3.5,.5],[65,4,2],[65,6,1.5],[64,7.5,.5],[65,8,1],[67,9,1],[60,10,2],[62,12,2],[64,14,1],[62,15,1],[60,16,3],[65,19,1.5],[64,20.5,.5],[65,21,2],[65,23,1.5],[64,24.5,.5],[65,25,1],[69,26,1],[67,27,1],[65,28,1],[64,29,1],[65,30,1],[67,31,4]]}
+  ]},
+  {id:'badguy',title:'bad guy',artist:'Billie Eilish',emoji:'😈',color:'#06D6A0',bpm:135,levels:[
+    {label:'⭐ Starter',sm:.7,notes:[[52,0,.5],[52,.5,.5],[52,1,.5],[52,1.5,.5],[52,2,.5],[52,2.5,.5],[55,3,1],[53,4,.5],[53,4.5,.5],[53,5,.5],[53,5.5,.5],[53,6,.5],[53,6.5,.5],[52,7,1],[50,8,.5],[50,8.5,.5],[50,9,.5],[50,9.5,.5],[50,10,.5],[50,10.5,.5],[48,11,1],[47,12,.5],[47,12.5,.5],[47,13,.5],[47,13.5,.5],[47,14,.5],[47,14.5,.5],[52,15,2]]},
+    {label:'⭐⭐ Growing',sm:1.0,notes:[[52,0,.5],[52,.5,.5],[52,1,.5],[52,1.5,.5],[52,2,.5],[52,2.5,.5],[55,3,1],[53,4,.5],[53,4.5,.5],[53,5,.5],[53,5.5,.5],[53,6,.5],[53,6.5,.5],[52,7,1],[50,8,.5],[50,8.5,.5],[50,9,.5],[50,9.5,.5],[50,10,.5],[50,10.5,.5],[48,11,1],[47,12,.5],[47,12.5,.5],[47,13,.5],[47,13.5,.5],[47,14,.5],[47,14.5,.5],[52,15,2],[55,16,.5],[55,16.5,.5],[57,17,.5],[55,17.5,.5],[53,18,2],[52,20,.5],[52,20.5,.5],[53,21,.5],[52,21.5,.5],[50,22,2]]},
+    {label:'⭐⭐⭐ Star',sm:1.2,notes:[[52,0,.25],[52,.25,.25],[52,.5,.25],[52,.75,.25],[52,1,.25],[52,1.25,.25],[52,1.5,.25],[55,1.75,.5],[55,2.25,.5],[53,3,.25],[53,3.25,.25],[53,3.5,.25],[53,3.75,.25],[53,4,.25],[53,4.25,.25],[53,4.5,.25],[52,4.75,.5],[52,5.25,.5],[50,6,.25],[50,6.25,.25],[50,6.5,.25],[50,6.75,.25],[50,7,.25],[50,7.25,.25],[50,7.5,.25],[48,7.75,.5],[48,8.25,.5],[47,9,.5],[47,9.5,.5],[47,10,.5],[47,10.5,.5],[52,11,2]]}
+  ]},
+  {id:'shakeitoff',title:'Shake It Off',artist:'Taylor Swift',emoji:'🎀',color:'#FFD60A',bpm:160,levels:[
+    {label:'⭐ Starter',sm:.65,notes:[[67,0,.5],[67,.5,.5],[67,1,1],[65,2,.5],[65,2.5,.5],[65,3,1],[64,4,.5],[64,4.5,.5],[64,5,1],[62,6,1],[60,7,1],[67,8,.5],[67,8.5,.5],[67,9,1],[65,10,.5],[65,10.5,.5],[65,11,1],[64,12,.5],[64,12.5,.5],[64,13,1],[62,14,2],[67,16,1],[65,17,1],[64,18,1],[62,19,1],[60,20,4]]},
+    {label:'⭐⭐ Growing',sm:1.0,notes:[[67,0,.5],[67,.5,.5],[67,1,1],[65,2,.5],[65,2.5,.5],[65,3,1],[64,4,.5],[64,4.5,.5],[64,5,1],[62,6,1],[60,7,1],[67,8,.5],[67,8.5,.5],[67,9,1],[65,10,.5],[65,10.5,.5],[65,11,1],[64,12,.5],[64,12.5,.5],[64,13,1],[62,14,2],[67,16,1],[65,17,1],[64,18,1],[62,19,1],[60,20,2],[72,22,.5],[71,22.5,.5],[69,23,1],[67,24,1],[65,25,1],[64,26,1],[62,27,2],[60,29,3]]},
+    {label:'⭐⭐⭐ Star',sm:1.1,notes:[[60,0,.5],[62,.5,.5],[64,1,.5],[65,1.5,.5],[67,2,.5],[67,2.5,.5],[67,3,1],[65,4,.5],[65,4.5,.5],[65,5,1],[64,6,.5],[64,6.5,.5],[64,7,1],[62,8,1],[60,9,1],[67,10,.5],[67,10.5,.5],[67,11,1],[65,12,.5],[65,12.5,.5],[65,13,1],[64,14,.5],[64,14.5,.5],[64,15,1],[62,16,2],[67,18,1],[65,19,1],[64,20,1],[62,21,1],[60,22,4]]}
+  ]}
+];
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let curSong=null, curLevel=0;
+let score=0,combo=0,bestCombo=0,hitNotes=0,totalNotes=0;
+let blocks=[],pending=[],particles=[];
+let gameActive=false,startTime=0,beatDur=0,pxPerBeat=0,hitLineY=0;
+let sessionSecs=600,timerInterval=null,raf=null;
+let activeKeys=new Set();
+
+function getLevel(id){return parseInt(localStorage.getItem('ps_l_'+id)||'0')}
+function setLevel(id,v){localStorage.setItem('ps_l_'+id,v)}
+function getStreak(){return parseInt(localStorage.getItem('ps_streak')||'0')}
+function setStreak(v){localStorage.setItem('ps_streak',v)}
+function getLastPlay(){return localStorage.getItem('ps_last')||''}
+function setLastPlay(v){localStorage.setItem('ps_last',v)}
+
+// ─── BG STARS ───────────────────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('bgc'),ctx=c.getContext('2d');
+  c.width=innerWidth;c.height=innerHeight;
+  const stars=Array.from({length:80},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.3+.2,ph:Math.random()*Math.PI*2,sp:Math.random()*.02+.004}));
+  (function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{s.ph+=s.sp;const a=(Math.sin(s.ph)+1)/2;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=`rgba(200,180,255,${a*.65})`;ctx.fill()});
+    requestAnimationFrame(draw);
+  })();
+})();
+
+// ─── MIDI ────────────────────────────────────────────────────────────────────
+function retryMidi(){
+  const dot=document.getElementById('midiDot'),lbl=document.getElementById('midiText');
+  if(!navigator.requestMIDIAccess){setMidiUI('unavailable');return}
+  lbl.textContent='Connecting…';
+  navigator.requestMIDIAccess().then(access=>{
+    const conn=()=>{
+      let found=false;
+      for(const inp of access.inputs.values()){inp.onmidimessage=onMidi;found=true}
+      setMidiUI(found?'connected':'waiting');
+    };
+    conn();access.onstatechange=conn;
+  }).catch(()=>setMidiUI('unavailable'));
+}
+
+function setMidiUI(s){
+  const dot=document.getElementById('midiDot'),lbl=document.getElementById('midiText');
+  const map={connected:['#06D6A0','Keyboard connected ✓'],waiting:['#FF9E00','Plug in Casio, tap to retry'],unavailable:['#FF6B9D','Touch mode — MIDI not available'],init:['#555','Looking for keyboard…']};
+  const[color,text]=map[s]||map.init;
+  dot.style.background=color;dot.style.boxShadow=`0 0 8px ${color}`;lbl.textContent=text;
+}
+
+function onMidi(e){
+  const[status,note,vel]=e.data;
+  const on=(status&0xf0)===0x90&&vel>0;
+  const off=(status&0xf0)===0x80||((status&0xf0)===0x90&&vel===0);
+  if(on){activeKeys.add(note);highlightKey(note,true);if(gameActive)checkHit(note)}
+  if(off){activeKeys.delete(note);highlightKey(note,false)}
+}
+
+// ─── HOME ────────────────────────────────────────────────────────────────────
+function renderHome(){
+  document.getElementById('streakN').textContent=getStreak();
+  const grid=document.getElementById('songGrid');
+  grid.innerHTML='';
+  SONGS.forEach(song=>{
+    const lvl=getLevel(song.id);
+    const stars='⭐'.repeat(lvl)+'☆'.repeat(3-lvl);
+    const card=document.createElement('button');
+    card.className='song-card';
+    card.style.borderColor=song.color+'44';
+    card.innerHTML=`
+      <div class="song-card-glow" style="background:${song.color}"></div>
+      <div class="song-emoji">${song.emoji}</div>
+      <div class="song-title">${song.title}</div>
+      <div class="song-artist">${song.artist}</div>
+      <div class="song-stars">${stars}</div>
+      <div class="lvl-badge" style="background:${song.color}22;color:${song.color};border:1px solid ${song.color}44">${song.levels[lvl].label}</div>`;
+    card.onclick=()=>startSong(song.id);
+    grid.appendChild(card);
+  });
+}
+
+// ─── SCREENS ─────────────────────────────────────────────────────────────────
+function show(id){['home','play','result'].forEach(s=>document.getElementById(s).classList.toggle('off',s!==id))}
+
+function goHome(){
+  stopGame();
+  renderHome();
+  show('home');
+}
+
+// ─── START GAME ──────────────────────────────────────────────────────────────
+function startSong(id){
+  curSong=SONGS.find(s=>s.id===id);
+  curLevel=getLevel(id);
+  show('play');
+  initGame();
+}
+
+function playAgain(){show('play');initGame()}
+
+function initGame(){
+  stopGame();
+  const song=curSong,lvl=song.levels[curLevel];
+  document.getElementById('playTitle').textContent=song.title;
+  document.getElementById('playArtist').textContent=song.artist;
+  document.getElementById('scLvl').textContent=['⭐','⭐⭐','⭐⭐⭐'][curLevel];
+  document.getElementById('scScore').textContent='0';
+  document.getElementById('scCombo').textContent='×1';
+  document.getElementById('scAcc').textContent='–';
+  score=0;combo=0;bestCombo=0;hitNotes=0;totalNotes=0;
+  blocks=[];particles=[];activeKeys.clear();
+
+  const canvas=document.getElementById('gc');
+  canvas.width=canvas.offsetWidth;
+  canvas.height=canvas.offsetHeight;
+  hitLineY=canvas.height-20;
+  pxPerBeat=(canvas.height-20)/7;
+  beatDur=(60000/song.bpm)/lvl.sm;
+
+  // build pending blocks
+  pending=lvl.notes.map((n,i)=>({midi:n[0],sb:n[1],db:n[2],id:i,hit:false,missed:false,spawned:false}));
+  totalNotes=pending.length;
+
+  // build piano
+  buildPiano(lvl.notes,song.color);
+
+  // countdown
+  const cdEl=document.getElementById('cdOv');
+  cdEl.style.color=song.color;
+  cdEl.style.textShadow=`0 0 40px ${song.color}`;
+  let c=3;
+  cdEl.style.display='flex';cdEl.textContent=c;
+  const tick=setInterval(()=>{
+    c--;
+    if(c>0){cdEl.textContent=c;cdEl.style.animation='none';void cdEl.offsetWidth;cdEl.style.animation='pop .3s ease-out'}
+    else{
+      clearInterval(tick);
+      cdEl.textContent='🎵';
+      setTimeout(()=>{
+        cdEl.style.display='none';
+        gameActive=true;
+        startTime=performance.now();
+        sessionSecs=600;updateTimer();
+        timerInterval=setInterval(()=>{sessionSecs--;updateTimer();if(sessionSecs<=0)endGame()},1000);
+        loop(performance.now());
+      },500);
+    }
+  },700);
+}
+
+// ─── GAME LOOP ───────────────────────────────────────────────────────────────
+function loop(now){
+  if(!gameActive)return;
+  const canvas=document.getElementById('gc'),ctx=canvas.getContext('2d');
+  const song=curSong,lvl=song.levels[curLevel];
+  const elapsed=now-startTime,eBeats=elapsed/beatDur;
+  const lookahead=hitLineY/pxPerBeat;
+  const midiArr=[...new Set(pending.map(p=>p.midi))];
+  const midiMin=Math.min(...midiArr),midiMax=Math.max(...midiArr);
+  const midiSpan=Math.max(midiMax-midiMin,1);
+  const margin=44;
+  const getNoteX=m=>margin+(m-midiMin)/midiSpan*(canvas.width-margin*2);
+  const getNoteW=()=>Math.max(28,(canvas.width-80)/(midiSpan+2)*.75);
+
+  // spawn
+  pending.forEach(pb=>{
+    if(!pb.spawned&&pb.sb<=eBeats+lookahead+1){
+      pb.spawned=true;
+      blocks.push({...pb,sx:getNoteX(pb.midi),w:getNoteW(),color:nc(pb.midi)});
+    }
+  });
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // hit line glow
+  const g=ctx.createLinearGradient(0,hitLineY-26,0,hitLineY+10);
+  g.addColorStop(0,'transparent');g.addColorStop(.5,song.color+'44');g.addColorStop(1,'transparent');
+  ctx.fillStyle=g;ctx.fillRect(0,hitLineY-26,canvas.width,36);
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=2;ctx.setLineDash([10,10]);
+  ctx.beginPath();ctx.moveTo(0,hitLineY);ctx.lineTo(canvas.width,hitLineY);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+
+  // blocks
+  blocks.forEach(b=>{
+    const bs=eBeats-b.sb;
+    const y=hitLineY-bs*pxPerBeat;
+    const h=Math.max(b.db*pxPerBeat,20);
+    b.cy=y;
+    if(!b.hit&&!b.missed&&y>hitLineY+42){
+      b.missed=true;combo=0;document.getElementById('scCombo').textContent='×1';
+      showMissFlash();
+    }
+    if(b.hit){
+      if(!b.ht)b.ht=now;
+      const age=(now-b.ht)/350;
+      if(age<1){ctx.save();ctx.globalAlpha=1-age;drawBlock(ctx,b.sx,y,b.w,h,b.color,true);ctx.restore()}
+    }else if(!b.missed||y<hitLineY+60){drawBlock(ctx,b.sx,y,b.w,h,b.color,false)}
+  });
+
+  // particles
+  particles=particles.filter(p=>{
+    const age=(now-p.born)/480;if(age>=1)return false;
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.35;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r*(1-age*.5),0,Math.PI*2);
+    ctx.fillStyle=p.color+Math.floor((1-age)*255).toString(16).padStart(2,'0');ctx.fill();
+    return true;
+  });
+
+  // all done?
+  if(pending.every(p=>p.spawned)&&blocks.every(b=>b.hit||b.missed||(b.cy??0)>canvas.height+50)&&pending.length>0){endGame();return}
+
+  raf=requestAnimationFrame(loop);
+}
+
+function drawBlock(ctx,x,y,w,h,color,hit){
+  const r=8;ctx.save();
+  if(hit){ctx.shadowColor=color;ctx.shadowBlur=18}
+  const g=ctx.createLinearGradient(x-w/2,y,x+w/2,y+h);
+  g.addColorStop(0,color);g.addColorStop(1,color+'88');ctx.fillStyle=g;
+  ctx.beginPath();ctx.roundRect(x-w/2,y,w,h,r);ctx.fill();
+  ctx.strokeStyle=hit?'rgba(255,255,255,.85)':color+'CC';ctx.lineWidth=hit?2.5:1.5;
+  ctx.beginPath();ctx.roundRect(x-w/2,y,w,h,r);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.18)';
+  ctx.beginPath();ctx.roundRect(x-w/2+3,y+3,w-6,Math.min(7,h-6),4);ctx.fill();
+  ctx.restore();
+}
+
+// ─── HIT DETECTION ───────────────────────────────────────────────────────────
+function checkHit(midi){
+  const WINDOW=58;let best=null,bd=Infinity;
+  blocks.forEach(b=>{
+    if(b.hit||b.missed||b.midi!==midi)return;
+    const d=Math.abs((b.cy??9999)-hitLineY);
+    if(d<WINDOW&&d<bd){bd=d;best=b}
+  });
+  if(best){
+    best.hit=true;best.ht=performance.now();
+    hitNotes++;combo++;if(combo>bestCombo)bestCombo=combo;
+    score+=100*combo;
+    document.getElementById('scScore').textContent=score.toLocaleString();
+    document.getElementById('scCombo').textContent='×'+combo;
+    const missed=blocks.filter(b=>b.missed).length;
+    document.getElementById('scAcc').textContent=Math.round(hitNotes/Math.max(1,hitNotes+missed)*100)+'%';
+    for(let i=0;i<8;i++)particles.push({x:best.sx,y:hitLineY,vx:(Math.random()-.5)*7,vy:-(Math.random()*5+2),r:Math.random()*4+2,color:nc(midi),born:performance.now()});
+    if([5,10,15,20,25].includes(combo)){
+      const m={5:'NICE! 🎵',10:'HOT! 🔥',15:'ON FIRE! 🔥',20:'WOW! ✨',25:'LEGEND! 👑'};
+      showCombo(m[combo]+' ×'+combo,nc(midi));
+    }
+  }else{combo=0;document.getElementById('scCombo').textContent='×1';showMissFlash()}
+}
+
+function showMissFlash(){const el=document.getElementById('missFlash');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),120)}
+function showCombo(text,color){const el=document.getElementById('comboPop');el.textContent=text;el.style.color=color;el.style.display='block';el.style.animation='none';void el.offsetWidth;el.style.animation='pop .25s ease-out';setTimeout(()=>el.style.display='none',900)}
+
+// ─── TIMER ───────────────────────────────────────────────────────────────────
+function updateTimer(){
+  const m=Math.floor(sessionSecs/60),s=sessionSecs%60;
+  document.getElementById('timerTxt').textContent=`${m}:${String(s).padStart(2,'0')}`;
+  const pct=sessionSecs/600,circ=125.7;
+  document.getElementById('timerArc').style.strokeDashoffset=circ*(1-pct);
+  document.getElementById('timerArc').style.stroke=sessionSecs<=60?'#FF6B9D':sessionSecs<=180?'#FF9E00':'#FFD60A';
+}
+
+// ─── END GAME ────────────────────────────────────────────────────────────────
+function endGame(){
+  gameActive=false;clearInterval(timerInterval);cancelAnimationFrame(raf);
+  const missed=blocks.filter(b=>b.missed).length+pending.filter(p=>!p.spawned).length;
+  const acc=Math.round(hitNotes/Math.max(1,hitNotes+missed)*100);
+  if(acc>=80&&curLevel<2){setLevel(curSong.id,curLevel+1)}
+  // streak
+  const today=new Date().toDateString(),last=getLastPlay();
+  if(last!==today){
+    const yest=new Date(Date.now()-86400000).toDateString();
+    setStreak(last===yest?getStreak()+1:1);setLastPlay(today);
+  }
+  const stars=acc>=90?3:acc>=70?2:1;
+  document.getElementById('resStars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);
+  const titles=['Keep going! 💪','Nice work! 🎵','You\'re a Star! 🌟'];
+  const msgs=[`You hit ${acc}% of notes. Try again!`,`Great playing! ${acc>=80?'Next level unlocked! 🎉':'Hit 80% to unlock the next level!'}`,`${acc}% accuracy — incredible! You are a Piano Star! 🎤`];
+  document.getElementById('resTitle').textContent=titles[stars-1];
+  document.getElementById('resMsg').textContent=msgs[stars-1];
+  document.getElementById('rScore').textContent=score.toLocaleString();
+  document.getElementById('rAcc').textContent=acc+'%';
+  document.getElementById('rCombo').textContent='×'+bestCombo;
+  show('result');
+}
+
+function stopGame(){
+  gameActive=false;clearInterval(timerInterval);cancelAnimationFrame(raf);
+  document.getElementById('cdOv').style.display='none';
+  document.getElementById('comboPop').style.display='none';
+  document.getElementById('missFlash').classList.remove('show');
+}
+
+// ─── PIANO ───────────────────────────────────────────────────────────────────
+function buildPiano(notes,songColor){
+  const midis=[...new Set(notes.map(n=>n[0]))].sort((a,b)=>a-b);
+  const min=midis[0],max=midis[midis.length-1];
+  const whites=[];
+  for(let m=min;m<=max+1;m++){if(!isB(m))whites.push(m)}
+
+  const inner=document.getElementById('pianoInner');inner.innerHTML='';
+
+  whites.forEach(wm=>{
+    const wrap=document.createElement('div');wrap.className='wkey-wrap';
+
+    const wbtn=document.createElement('button');
+    wbtn.className='wkey';wbtn.dataset.midi=wm;
+    wbtn.style.borderColor=midis.includes(wm)?songColor+'55':'rgba(255,255,255,.1)';
+    if(!midis.includes(wm))wbtn.style.opacity='.4';
+    wbtn.innerHTML=`<span>${nn(wm)}</span>`;
+
+    const doPress=()=>{
+      activeKeys.add(wm);highlightKey(wm,true);
+      if(gameActive)checkHit(wm);
+    };
+    const doRelease=()=>{activeKeys.delete(wm);highlightKey(wm,false)};
+    wbtn.addEventListener('pointerdown',e=>{e.preventDefault();doPress()});
+    wbtn.addEventListener('pointerup',e=>{e.preventDefault();doRelease()});
+    wbtn.addEventListener('pointerleave',e=>{e.preventDefault();doRelease()});
+    wrap.appendChild(wbtn);
+
+    // black key above?
+    const bm=wm+1;
+    if(isB(bm)&&bm<=max+1){
+      const bbtn=document.createElement('button');
+      bbtn.className='bkey';bbtn.dataset.midi=bm;
+      bbtn.style.left='50%';bbtn.style.transform='translateX(4px)';
+      if(!midis.includes(bm))bbtn.style.opacity='.3';
+      const doPressB=()=>{activeKeys.add(bm);highlightKey(bm,true);if(gameActive)checkHit(bm)};
+      const doReleaseB=()=>{activeKeys.delete(bm);highlightKey(bm,false)};
+      bbtn.addEventListener('pointerdown',e=>{e.preventDefault();doPressB()});
+      bbtn.addEventListener('pointerup',e=>{e.preventDefault();doReleaseB()});
+      bbtn.addEventListener('pointerleave',e=>{e.preventDefault();doReleaseB()});
+      wrap.appendChild(bbtn);
+    }
+    inner.appendChild(wrap);
+  });
+}
+
+function highlightKey(midi,on){
+  document.querySelectorAll(`[data-midi="${midi}"]`).forEach(el=>{
+    if(on){el.style.background=nc(midi);el.style.boxShadow=`0 0 14px ${nc(midi)}`}
+    else{el.style.background=el.classList.contains('bkey')?'rgba(0,0,0,.8)':'rgba(255,255,255,.09)';el.style.boxShadow='none'}
+  });
+}
+
+// ─── KEYBOARD FALLBACK ───────────────────────────────────────────────────────
+const KMAP={a:60,w:61,s:62,e:63,d:64,f:65,t:66,g:67,y:68,h:69,u:70,j:71,k:72};
+document.addEventListener('keydown',e=>{if(e.repeat)return;const m=KMAP[e.key];if(m){activeKeys.add(m);highlightKey(m,true);if(gameActive)checkHit(m)}});
+document.addEventListener('keyup',e=>{const m=KMAP[e.key];if(m){activeKeys.delete(m);highlightKey(m,false)}});
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+retryMidi();
+renderHome();
+</script>
+</body>
+</html>
